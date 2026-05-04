@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum Forge</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap');
+
+  :root {
+    --bg:#f4f5f7; --surface:#ffffff; --border:#dde0e8; --border2:#c8ccd8;
+    --text:#1a1e2e; --dim:#7a8299; --success:#059669; --gold:#d97706; --red:#ef4444;
+    --c-s:#f59e0b; --c-m:#ea580c; --c-kg:#dc2626; --c-A:#16a34a; --c-K:#2563eb; --c-mol:#7c3aed; --c-cd:#0891b2;
+    --t1:#0f766e; --t2:#6d28d9; --t3:#be185d;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; overflow:hidden; }
+  body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; font-size:14px; }
+  body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:radial-gradient(circle,#c8ccd8 1px,transparent 1px); background-size:26px 26px; opacity:.45; }
+
+  /* HEADER */
+  header { position:relative; z-index:20; height:50px; padding:0 18px; display:flex; align-items:center; gap:10px; background:var(--surface); border-bottom:2px solid var(--border); box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  .logo { display:flex; align-items:center; gap:8px; }
+  .logo-icon { font-size:1.3rem; }
+  .logo-name { font-family:'Syne',sans-serif; font-size:1.15rem; font-weight:800; }
+  .logo-name em { color:#ea580c; font-style:normal; }
+  .logo-sub { font-size:.46rem; letter-spacing:.17em; text-transform:uppercase; color:var(--dim); }
+  .hdr-right { margin-left:auto; display:flex; align-items:center; gap:7px; }
+  .hpill { display:flex; flex-direction:column; align-items:center; background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:3px 12px; min-width:64px; }
+  .hpill-lbl { font-size:.46rem; letter-spacing:.12em; color:var(--dim); text-transform:uppercase; font-weight:600; }
+  .hpill-val { font-family:'Syne',sans-serif; font-size:.92rem; font-weight:800; line-height:1.2; }
+  .cv-orange { color:#ea580c; } .cv-gold { color:var(--gold); } .cv-dim { color:var(--dim); }
+  .urgent { color:var(--red)!important; animation:blink .45s ease infinite alternate; }
+  @keyframes blink { from{opacity:1} to{opacity:.25} }
+  .hdr-btn { padding:5px 12px; background:transparent; border:1.5px solid var(--border); color:var(--dim); font-family:'Inter',sans-serif; font-size:.72rem; font-weight:600; cursor:pointer; border-radius:7px; transition:all .13s; }
+  .hdr-btn:hover { border-color:var(--red); color:var(--red); }
+
+  /* LAYOUT */
+  .main-wrap { position:relative; z-index:1; height:calc(100vh - 50px); display:flex; flex-direction:column; }
+
+  /* BASE ROW */
+  .base-row { display:flex; align-items:stretch; background:var(--surface); border-bottom:2px solid var(--border); flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+  .bu-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:11px 4px 9px; cursor:pointer; border:none; border-right:1px solid var(--border); background:var(--surface); transition:background .13s, transform .1s; user-select:none; position:relative; }
+  .bu-btn:last-child { border-right:none; }
+  .bu-btn:hover { background:#f8f9fc; transform:translateY(-1px); }
+  .bu-btn.selected { background:#f0f4ff; }
+  .bu-btn::before { content:''; position:absolute; top:0; left:0; right:0; height:5px; }
+  .bu-btn[data-id="s"]::before{background:var(--c-s)} .bu-btn[data-id="m"]::before{background:var(--c-m)} .bu-btn[data-id="kg"]::before{background:var(--c-kg)} .bu-btn[data-id="A"]::before{background:var(--c-A)} .bu-btn[data-id="K"]::before{background:var(--c-K)} .bu-btn[data-id="mol"]::before{background:var(--c-mol)} .bu-btn[data-id="cd"]::before{background:var(--c-cd)}
+  .bu-emoji { font-size:1.25rem; line-height:1; }
+  .bu-sym { font-family:'Syne',sans-serif; font-size:1.35rem; font-weight:800; line-height:1; }
+  .bu-btn[data-id="s"] .bu-sym{color:var(--c-s)} .bu-btn[data-id="m"] .bu-sym{color:var(--c-m)} .bu-btn[data-id="kg"] .bu-sym{color:var(--c-kg)} .bu-btn[data-id="A"] .bu-sym{color:var(--c-A)} .bu-btn[data-id="K"] .bu-sym{color:var(--c-K)} .bu-btn[data-id="mol"] .bu-sym{color:var(--c-mol)} .bu-btn[data-id="cd"] .bu-sym{color:var(--c-cd)}
+  .bu-name { font-size:.56rem; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:.06em; }
+  .bu-btn.exhausted { opacity:.32; }
+  .bu-btn.exhausted:hover { background:#f8f9fc; transform:translateY(-1px); }
+
+  /* BODY SPLIT */
+  .body-split { flex:1; display:grid; grid-template-columns:1fr 360px; overflow:hidden; }
+
+  /* LEFT COL */
+  .left-col { display:flex; flex-direction:column; overflow:hidden; border-right:2px solid var(--border); background:var(--bg); }
+
+  /* FORGE AREA */
+  .forge-area { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:14px; padding:20px 28px 16px; background:var(--surface); border-bottom:2px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.04); }
+  .forge-lbl { font-size:.54rem; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .forge-slots-row { display:flex; align-items:center; gap:20px; }
+  .forge-slot { width:175px; height:175px; border-radius:18px; border:2.5px dashed var(--border2); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; transition:all .17s; background:var(--bg); position:relative; overflow:hidden; }
+  .forge-slot:hover { border-color:#94a3b8; background:#f0f4ff; }
+  .forge-slot.filled { border-style:solid; border-color:#ea580c; background:#fff7f0; box-shadow:0 0 0 4px rgba(234,88,12,.08); }
+  .fsl-emoji { font-size:3.5rem; line-height:1; }
+  .fsl-sym { font-family:'Syne',sans-serif; font-size:1.7rem; font-weight:800; color:#ea580c; }
+  .fsl-name { font-size:.73rem; color:var(--dim); text-align:center; padding:0 8px; font-weight:500; }
+  .fsl-empty { font-size:.66rem; color:#c0c8d8; text-align:center; line-height:1.9; font-weight:500; }
+  .forge-plus { font-size:2.6rem; color:var(--border2); font-family:'Syne',sans-serif; font-weight:800; }
+  .forge-btns { display:flex; gap:10px; align-items:center; }
+  .forge-btn { padding:13px 48px; background:#ea580c; border:none; color:#fff; font-family:'Syne',sans-serif; font-size:.92rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; border-radius:10px; transition:all .14s; box-shadow:0 3px 14px rgba(234,88,12,.35); }
+  .forge-btn:hover { background:#c2410c; transform:translateY(-1px); box-shadow:0 5px 20px rgba(234,88,12,.42); }
+  .forge-btn:disabled { opacity:.22; cursor:not-allowed; transform:none; box-shadow:none; }
+  .hint-btn { padding:12px 18px; background:transparent; border:1.5px solid var(--border2); color:var(--dim); font-family:'Inter',sans-serif; font-size:.75rem; font-weight:600; cursor:pointer; border-radius:10px; transition:all .14s; white-space:nowrap; }
+  .hint-btn:hover { border-color:#7c3aed; color:#7c3aed; background:#faf5ff; }
+  .hint-btn:disabled { opacity:.22; cursor:not-allowed; }
+
+  /* RESULT AREA */
+  .result-area { min-height:84px; display:flex; align-items:center; justify-content:center; text-align:center; padding:6px 16px; font-size:.78rem; }
+  .res-pop { animation:resPop .45s cubic-bezier(.175,.885,.32,1.275); }
+  @keyframes resPop { from{transform:scale(.3);opacity:0} to{transform:scale(1);opacity:1} }
+  .res-new-badge { font-size:.58rem; letter-spacing:.13em; text-transform:uppercase; font-weight:700; color:var(--success); background:#ecfdf5; padding:3px 12px; border-radius:20px; border:1.5px solid #6ee7b7; }
+  .res-pts { font-family:'Syne',sans-serif; font-size:1.2rem; font-weight:800; color:var(--gold); animation:ptsPop .42s ease; }
+  @keyframes ptsPop { 0%{transform:translateY(8px) scale(.75);opacity:0} 65%{transform:translateY(-4px) scale(1.1);opacity:1} 100%{transform:translateY(0) scale(1)} }
+  .res-hint-box { background:#faf5ff; border:1.5px solid #c4b5fd; border-radius:10px; padding:12px 18px; font-size:.74rem; color:#6d28d9; line-height:1.7; max-width:320px; }
+
+  /* TIERS */
+  .tiers-scroll { flex:1; overflow-y:auto; padding:14px 16px; }
+  .tier-section { margin-bottom:18px; }
+  .tier-header { display:flex; align-items:center; gap:8px; margin-bottom:9px; padding-bottom:6px; border-bottom:2px solid var(--border); }
+  .tier-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+  .tier-title { font-size:.62rem; letter-spacing:.13em; text-transform:uppercase; font-weight:700; }
+  .tier-count { font-size:.6rem; color:var(--dim); margin-left:auto; font-weight:600; }
+  .tier-cards { display:flex; flex-wrap:wrap; gap:8px; }
+  .d-card { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:11px 10px 9px; border-radius:12px; border:1.5px solid var(--border); background:var(--surface); cursor:pointer; user-select:none; transition:all .13s; min-width:84px; position:relative; }
+  .d-card:hover { transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,.1); }
+  .d-card.t1 { border-color:#99f6e4; } .d-card.t1:hover { border-color:var(--t1); }
+  .d-card.t2 { border-color:#c4b5fd; } .d-card.t2:hover { border-color:var(--t2); }
+  .d-card.t3 { border-color:#fbcfe8; } .d-card.t3:hover { border-color:var(--t3); }
+  .d-card.exhausted { opacity:.32; }
+  .d-card.newly-unlocked { animation:cardGlow 1.2s ease forwards; }
+  @keyframes cardGlow { 0%{border-color:var(--gold);box-shadow:0 0 0 rgba(217,119,6,0);transform:scale(1)} 25%{border-color:var(--gold);box-shadow:0 0 22px rgba(217,119,6,.55);transform:scale(1.07)} 100%{border-color:var(--border);box-shadow:none;transform:scale(1)} }
+  .dc-emoji { font-size:1.4rem; line-height:1; margin-bottom:3px; }
+  .dc-sym { font-family:'Syne',sans-serif; font-size:.92rem; font-weight:800; line-height:1; }
+  .dc-sym.t1{color:var(--t1)} .dc-sym.t2{color:var(--t2)} .dc-sym.t3{color:var(--t3)}
+  .dc-name { font-size:.6rem; font-weight:600; color:var(--text); margin-top:2px; }
+  .dc-desc { font-size:.5rem; color:var(--dim); margin-top:1px; }
+  .dc-done { position:absolute; top:3px; right:4px; font-size:.42rem; color:var(--dim); }
+  .tier-empty { font-size:.7rem; color:var(--dim); padding:6px 2px; }
+
+  /* ── ENGINEER CHARACTER ── */
+  .char-panel {
+    flex-shrink:0; padding:14px 16px 12px;
+    border-bottom:2px solid var(--border);
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    background:linear-gradient(160deg,#f8faff 0%,#ffffff 100%);
+  }
+  .char-title {
+    font-size:.48rem; letter-spacing:.18em; text-transform:uppercase;
+    font-weight:700; color:var(--dim); align-self:flex-start;
+  }
+  .char-stage {
+    position:relative; width:180px; height:210px;
+    display:flex; justify-content:center; align-items:center;
+  }
+  #engineerSvg { width:180px; height:210px; overflow:visible; }
+
+  .char-progress-row { display:flex; align-items:center; gap:8px; width:100%; }
+  .char-prog-bar { flex:1; height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+  .char-prog-fill {
+    height:100%; border-radius:3px;
+    background:linear-gradient(to right,#0891b2,#6d28d9,#be185d);
+    transition:width .7s cubic-bezier(.4,0,.2,1);
+  }
+  .char-prog-label { font-size:.56rem; font-weight:700; color:var(--dim); white-space:nowrap; }
+  .char-rank {
+    font-size:.6rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+    padding:3px 12px; border-radius:20px; border:1.5px solid var(--border);
+    background:var(--bg); color:var(--dim); transition:color .4s, border-color .4s, background .4s;
+  }
+
+  /* Poof animation for new tool */
+  @keyframes poofRing {
+    0%   { r:0;   opacity:.9; }
+    60%  { r:18;  opacity:.5; }
+    100% { r:26;  opacity:0; }
+  }
+  @keyframes poofDot {
+    0%   { transform:translate(0,0) scale(1); opacity:1; }
+    100% { transform:translate(var(--px),var(--py)) scale(0); opacity:0; }
+  }
+  @keyframes toolBounce {
+    0%   { transform:scale(0) rotate(-15deg); opacity:0; }
+    55%  { transform:scale(1.3) rotate(4deg);  opacity:1; }
+    75%  { transform:scale(.92) rotate(-2deg); }
+    100% { transform:scale(1)   rotate(0deg);  opacity:1; }
+  }
+  @keyframes rankGlow {
+    0%,100% { box-shadow:none; }
+    40%     { box-shadow:0 0 16px rgba(217,119,6,.55); border-color:var(--gold); color:var(--gold); }
+  }
+  .rank-promoted { animation:rankGlow 1s ease forwards; }
+
+  @keyframes poofDot {
+    0%   { transform:translate(0,0) scale(1); opacity:1; }
+    100% { transform:translate(var(--px),var(--py)) scale(0); opacity:0; }
+  }
+  @keyframes poofRingCSS {
+    0%   { transform:scale(1);   opacity:.9; }
+    60%  { transform:scale(4.5); opacity:.5; }
+    100% { transform:scale(7);   opacity:0;  }
+  }
+  @keyframes toolBounce {
+    0%   { transform:scale(0) rotate(-15deg); opacity:0; }
+    55%  { transform:scale(1.3) rotate(4deg);  opacity:1; }
+    75%  { transform:scale(.92) rotate(-2deg); }
+    100% { transform:scale(1)   rotate(0deg);  opacity:1; }
+  }
+  .right-col { overflow-y:auto; background:var(--surface); display:flex; flex-direction:column; }
+  .right-ptitle { font-size:.54rem; letter-spacing:.14em; text-transform:uppercase; font-weight:700; color:var(--dim); padding:14px 20px 0; }
+  .edu-panel { flex:1; padding:14px 20px 18px; display:flex; flex-direction:column; gap:0; }
+  .edu-placeholder { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--dim); text-align:center; padding:24px; }
+  .edu-placeholder-icon { font-size:2.8rem; opacity:.38; }
+  .edu-placeholder-text { font-size:.76rem; line-height:1.85; }
+  .edu-content { display:flex; flex-direction:column; gap:14px; }
+  .edu-head { display:flex; align-items:center; gap:14px; padding-bottom:14px; border-bottom:2px solid var(--border); }
+  .edu-head-emoji { font-size:2.4rem; line-height:1; }
+  .edu-head-sym { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; line-height:1; }
+  .edu-head-sym.t1{color:var(--t1)} .edu-head-sym.t2{color:var(--t2)} .edu-head-sym.t3{color:var(--t3)} .edu-head-sym.base{color:#ea580c}
+  .edu-head-name { font-size:.8rem; font-weight:700; margin-top:2px; }
+  .edu-head-desc { font-size:.68rem; color:var(--dim); margin-top:1px; }
+  .edu-formula { background:#fff7f0; border:1.5px solid #fed7aa; border-radius:9px; padding:10px 16px; font-family:'Syne',sans-serif; font-size:1.05rem; font-weight:800; color:#c2410c; text-align:center; }
+  .edu-section { display:flex; flex-direction:column; gap:5px; }
+  .edu-sec-lbl { font-size:.54rem; letter-spacing:.13em; text-transform:uppercase; font-weight:700; color:var(--dim); padding-bottom:4px; border-bottom:1px solid var(--border); }
+  .edu-sec-text { font-size:.75rem; line-height:1.73; }
+  .edu-analogy { background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:8px; padding:9px 13px; font-size:.73rem; line-height:1.65; color:#166534; font-weight:500; }
+  .edu-tags { display:flex; flex-wrap:wrap; gap:5px; }
+  .edu-tag { background:#f8f0ff; border:1px solid #e9d5ff; color:#6d28d9; border-radius:6px; padding:3px 9px; font-size:.64rem; font-weight:600; }
+
+  /* DISCOVERY OVERLAY */
+  .disc-overlay { position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center; pointer-events:none; opacity:0; }
+  .disc-overlay.show { animation:discFade 2.3s ease forwards; }
+  @keyframes discFade { 0%{opacity:0} 12%{opacity:1} 72%{opacity:1} 100%{opacity:0} }
+  .disc-burst { display:flex; flex-direction:column; align-items:center; gap:10px; background:var(--surface); border:3px solid var(--gold); border-radius:24px; padding:28px 52px; box-shadow:0 24px 70px rgba(0,0,0,.28); animation:burstPop 2.3s ease forwards; }
+  @keyframes burstPop { 0%{transform:scale(.45) translateY(24px)} 16%{transform:scale(1.06) translateY(0)} 26%{transform:scale(1)} 76%{transform:scale(1)} 100%{transform:scale(.75) translateY(-24px)} }
+  .burst-label { font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; font-weight:700; color:var(--success); background:#ecfdf5; padding:3px 14px; border-radius:20px; border:1.5px solid #6ee7b7; }
+  .burst-emoji { font-size:4.2rem; line-height:1; animation:burstSpin .4s ease; }
+  @keyframes burstSpin { from{transform:rotate(-18deg) scale(.55)} to{transform:rotate(0) scale(1)} }
+  .burst-sym { font-family:'Syne',sans-serif; font-size:2.6rem; font-weight:800; color:var(--gold); }
+  .burst-name { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:800; }
+  .burst-pts { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:800; color:var(--gold); }
+
+  /* OVERLAYS */
+  .overlay { position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center; background:rgba(20,24,40,.5); backdrop-filter:blur(6px); opacity:0; pointer-events:none; transition:opacity .28s; }
+  .overlay.on { opacity:1; pointer-events:all; }
+  .modal { background:var(--surface); border:2px solid var(--border); border-radius:18px; padding:32px 40px; text-align:center; max-width:420px; width:92%; transform:scale(.88); transition:transform .3s cubic-bezier(.175,.885,.32,1.275); box-shadow:0 24px 60px rgba(0,0,0,.18); }
+  .overlay.on .modal { transform:scale(1); }
+  .modal-emoji { font-size:2.8rem; margin-bottom:10px; }
+  .modal-title { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; margin-bottom:5px; }
+  .modal-title em { color:#ea580c; font-style:normal; }
+  .modal-sub { font-size:.74rem; color:var(--dim); margin-bottom:20px; line-height:1.7; }
+  .modal-stats { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:20px; }
+  .ms { background:var(--bg); border:1.5px solid var(--border); border-radius:10px; padding:12px; }
+  .ms-v { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; color:var(--gold); }
+  .ms-v.green { color:var(--success); }
+  .ms-l { font-size:.54rem; color:var(--dim); text-transform:uppercase; letter-spacing:.07em; margin-top:2px; font-weight:600; }
+  .modal-btns { display:flex; gap:9px; justify-content:center; }
+  .btn-p { padding:11px 24px; background:#ea580c; border:none; color:#fff; font-family:'Inter',sans-serif; font-size:.75rem; font-weight:700; cursor:pointer; border-radius:9px; transition:all .13s; box-shadow:0 3px 10px rgba(234,88,12,.35); }
+  .btn-p:hover { background:#c2410c; transform:translateY(-1px); }
+  .btn-s { padding:11px 24px; background:transparent; border:1.5px solid var(--border2); color:var(--dim); font-family:'Inter',sans-serif; font-size:.75rem; font-weight:600; cursor:pointer; border-radius:9px; transition:all .13s; }
+  .btn-s:hover { border-color:#ea580c; color:#ea580c; background:#fff7f0; }
+  .start-rules { text-align:left; margin-bottom:22px; display:flex; flex-direction:column; gap:9px; }
+  .rule { display:flex; align-items:flex-start; gap:10px; font-size:.73rem; line-height:1.65; }
+
+  /* TOAST */
+  .toast { position:fixed; top:60px; left:50%; transform:translateX(-50%) translateY(-10px); background:var(--text); color:#fff; padding:8px 18px; border-radius:8px; font-size:.72rem; font-weight:600; z-index:250; opacity:0; transition:all .2s; pointer-events:none; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,.2); }
+  .toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* PARTICLES */
+  .particle { position:fixed; pointer-events:none; border-radius:50%; animation:pFly 1s ease-out forwards; z-index:199; }
+  @keyframes pFly { 0%{transform:translate(0,0) scale(1);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0} }
+  .float-pts { position:fixed; pointer-events:none; font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; color:var(--gold); z-index:199; animation:fUp 1.1s ease-out forwards; }
+  @keyframes fUp { 0%{transform:translateY(0) scale(1);opacity:1} 100%{transform:translateY(-70px) scale(.6);opacity:0} }
+
+  .btn-mode { padding:14px 10px; background:var(--bg); border:2px solid var(--border); color:var(--text); font-family:'Inter',sans-serif; cursor:pointer; border-radius:12px; transition:all .15s; text-align:center; line-height:1.3; }
+  .btn-mode:hover { border-color:#ea580c; background:#fff7f0; transform:translateY(-2px); box-shadow:0 4px 14px rgba(234,88,12,.15); }
+</style>
+</head>
+<body>
+
+<div class="disc-overlay" id="discOverlay">
+  <div class="disc-burst">
+    <div class="burst-label">✨ New Discovery!</div>
+    <div class="burst-emoji" id="bEmoji">⚡</div>
+    <div class="burst-sym" id="bSym">N</div>
+    <div class="burst-name" id="bName">Newton</div>
+    <div class="burst-pts" id="bPts">+200 pts</div>
+  </div>
+</div>
+
+<div class="overlay on" id="startOverlay">
+  <div class="modal">
+    <div class="modal-emoji">⚗️</div>
+    <div class="modal-title">Quantum <em>Forge</em></div>
+    <div class="modal-sub">Combine ⚛️ SI base units to discover all 22 derived units</div>
+    <div class="start-rules">
+      <div class="rule">🔗 &nbsp;Derived units chain — combine them too!</div>
+      <div class="rule">✅ &nbsp;Faded units have no combos left</div>
+      <div class="rule">💡 &nbsp;3 hints available, each costs −50 pts</div>
+      <div class="rule">📖 &nbsp;Science card appears on the right after each forge</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn-mode" onclick="startGame('timed')" style="flex:1">
+        <div style="font-size:1.2rem;margin-bottom:4px">⏱️</div>
+        <div style="font-weight:800;font-size:.88rem">Timed Mode</div>
+        <div style="font-size:.64rem;opacity:.7;margin-top:2px;font-weight:500">3 min · speed bonuses<br>compete for high score</div>
+      </button>
+      <button class="btn-mode" onclick="startGame('sandbox')" style="flex:1">
+        <div style="font-size:1.2rem;margin-bottom:4px">🧪</div>
+        <div style="font-weight:800;font-size:.88rem">Sandbox</div>
+        <div style="font-size:.64rem;opacity:.7;margin-top:2px;font-weight:500">no time limit · explore<br>at your own pace</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="goOverlay">
+  <div class="modal">
+    <div class="modal-emoji" id="goEmoji">🏆</div>
+    <div class="modal-title" id="goTitle">Time's Up!</div>
+    <div class="modal-sub" id="goSub">Here's how you did</div>
+    <div class="modal-stats">
+      <div class="ms"><div class="ms-v green" id="goScore">0</div><div class="ms-l">Score</div></div>
+      <div class="ms"><div class="ms-v" id="goBest">0</div><div class="ms-l">🏅 Best</div></div>
+      <div class="ms"><div class="ms-v" id="goDisc">0</div><div class="ms-l">🔬 Discovered</div></div>
+      <div class="ms"><div class="ms-v" id="goTotal">22</div><div class="ms-l">🧪 Total</div></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-s" onclick="shareScore()">📋 Share</button>
+      <button class="btn-p" id="goRestart" onclick="restartGame()">↺ Play Again</button>
+      <button class="btn-s" id="goExplore" onclick="keepExploring()" style="display:none">🔬 Keep Exploring</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">⚗️</span>
+    <div><div class="logo-name">Quantum <em>Forge</em></div><div class="logo-sub">Physics Alchemy</div></div>
+  </div>
+  <div class="hdr-right">
+    <div class="hpill"><div class="hpill-lbl">🔬 Found</div><div class="hpill-val cv-orange" id="hFound">0/22</div></div>
+    <div class="hpill" id="timerPill"><div class="hpill-lbl">⏱️ Time</div><div class="hpill-val cv-orange" id="hTimer">3:00</div></div>
+    <div class="hpill"><div class="hpill-lbl">⭐ Score</div><div class="hpill-val cv-gold" id="hScore">0</div></div>
+    <div class="hpill"><div class="hpill-lbl">🏅 Best</div><div class="hpill-val cv-dim" id="hBest">0</div></div>
+    <span id="modeBadge" style="display:none;font-size:.62rem;font-weight:700;padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);color:var(--dim);background:var(--bg)"></span>
+    <button class="hdr-btn" onclick="restartGame()">↺ Restart</button>
+  </div>
+</header>
+
+<div class="main-wrap">
+  <div class="base-row" id="baseRow"></div>
+  <div class="body-split">
+    <div class="left-col">
+      <div class="forge-area">
+        <div class="forge-lbl">⚗️ The Forge — select two units then press Forge</div>
+        <div class="forge-slots-row">
+          <div class="forge-slot" id="slot0" onclick="clickSlot(0)"><div id="sc0" class="fsl-empty">click a unit above<br>to place it here</div></div>
+          <div class="forge-plus">+</div>
+          <div class="forge-slot" id="slot1" onclick="clickSlot(1)"><div id="sc1" class="fsl-empty">click a unit above<br>to place it here</div></div>
+        </div>
+        <div class="forge-btns">
+          <button class="forge-btn" id="forgeBtn" onclick="tryForge()" disabled>⚡ Forge</button>
+          <button class="hint-btn" id="hintBtn" onclick="giveHint()" disabled>💡 Hint (3 left)</button>
+        </div>
+        <div class="result-area" id="resultArea"><span style="color:var(--dim);font-size:.76rem">✨ Select two units above and press Forge</span></div>
+      </div>
+      <div class="tiers-scroll" id="tiersScroll">
+        <div class="tier-section">
+          <div class="tier-header"><div class="tier-dot" style="background:var(--t1)"></div><div class="tier-title" style="color:var(--t1)">Tier 1 — Direct from base units</div><div class="tier-count" id="t1count">0 discovered</div></div>
+          <div class="tier-cards" id="tier1Cards"><div class="tier-empty">Nothing yet — combine two base units! ⚛️</div></div>
+        </div>
+        <div class="tier-section">
+          <div class="tier-header"><div class="tier-dot" style="background:var(--t2)"></div><div class="tier-title" style="color:var(--t2)">Tier 2 — Derived from derived</div><div class="tier-count" id="t2count">0 discovered</div></div>
+          <div class="tier-cards" id="tier2Cards"><div class="tier-empty">Unlock Tier 1 units to chain further 🔗</div></div>
+        </div>
+        <div class="tier-section">
+          <div class="tier-header"><div class="tier-dot" style="background:var(--t3)"></div><div class="tier-title" style="color:var(--t3)">Tier 3 — Advanced chains</div><div class="tier-count" id="t3count">0 discovered</div></div>
+          <div class="tier-cards" id="tier3Cards"><div class="tier-empty">Keep chaining to reach deeper units 🚀</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="right-col">
+      <!-- Engineer Character -->
+      <div class="char-panel">
+        <div class="char-title">⚙️ Your Engineer</div>
+        <div class="char-stage">
+          <svg id="engineerSvg" viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="char-progress-row">
+          <div class="char-prog-bar"><div class="char-prog-fill" id="charProgFill" style="width:0%"></div></div>
+          <div class="char-prog-label" id="charProgLabel">0/22</div>
+        </div>
+        <div class="char-rank" id="charRank">🧑 Rookie</div>
+      </div>
+      <div class="right-ptitle">📖 Science Card</div>
+      <div class="edu-panel" id="eduPanel">
+        <div class="edu-placeholder"><div class="edu-placeholder-icon">🔬</div><div class="edu-placeholder-text">Forge a combination to see<br>the science card here!</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE_UNITS=[
+  {id:'s',symbol:'s',name:'Second',desc:'Time',emoji:'⏱️',blurb:'Base unit of time — defined by 9,192,631,770 oscillations of a cesium-133 atom.',analogy:'❤️ One heartbeat ≈ 1 s. A blink ≈ 0.15 s.',fact:'💡 Atomic clocks lose just 1 second every 300 million years!',combos_hint:['s + s → 〰️ Hz (Frequency)','s + m/s → 🏎️ m/s² (Acceleration)']},
+  {id:'m',symbol:'m',name:'Metre',desc:'Length',emoji:'📏',blurb:'Base unit of length — defined by the distance light travels in 1/299,792,458 s.',analogy:'🚪 A standard door ≈ 2 m. A guitar ≈ 1 m.',fact:'💡 Light travels exactly 299,792,458 metres every second!',combos_hint:['m + m → 🔲 m² (Area)','m + s → 🚀 m/s (Speed)','m + N → 🔋 Joule (Energy)']},
+  {id:'kg',symbol:'kg',name:'Kilogram',desc:'Mass',emoji:'⚖️',blurb:'Base unit of mass — defined by a fixed value of Planck\'s constant.',analogy:'🛍️ A bag of sugar ≈ 1 kg. You are about 60–80 kg.',fact:'💡 Until 2019, the kilogram was a platinum cylinder kept in Paris!',combos_hint:['kg + m/s² → 💪 Newton (Force)','kg + J → ☢️ Gray (Radiation)']},
+  {id:'A',symbol:'A',name:'Ampere',desc:'Electric Current',emoji:'⚡',blurb:'Base unit of electric current — 1 A ≈ 6.24 × 10¹⁸ electrons per second.',analogy:'📱 Phone charger ≈ 1–2 A. Household circuit ≈ 15–20 A.',fact:'💡 Even 0.1 A through the heart can be fatal!',combos_hint:['A + s → 🔌 Coulomb (Charge)','A + V → 💥 Watt (Power)']},
+  {id:'K',symbol:'K',name:'Kelvin',desc:'Temperature',emoji:'🌡️',blurb:'Base unit of temperature — starts at absolute zero (−273.15 °C).',analogy:'🌌 Deep space ≈ 2.7 K. 🧊 Water freezes at 273 K.',fact:'💡 Scientists have cooled matter to within 0.000000001 K of absolute zero!',combos_hint:[]},
+  {id:'mol',symbol:'mol',name:'Mole',desc:'Amount of Substance',emoji:'🧪',blurb:'Counts particles. 1 mol = 6.022 × 10²³ atoms or molecules.',analogy:'💧 1 mol of water = 18 g — fits in a tablespoon.',fact:'💡 That tablespoon holds more molecules than stars in the observable universe!',combos_hint:['mol + s → ⚛️ Becquerel','mol + s → 🧬 Katal']},
+  {id:'cd',symbol:'cd',name:'Candela',desc:'Luminous Intensity',emoji:'💡',blurb:'Base unit of light intensity — tuned to human vision.',analogy:'🕯️ One candle ≈ 1 cd. The name literally comes from candle!',fact:'💡 The only SI base unit defined around human perception.',combos_hint:['cd + sr → 🌟 Lumen (Luminous Flux)']},
+];
+
+const DERIVED=[
+  {id:'m/s',symbol:'m/s',name:'Velocity',desc:'Speed / Velocity',formula:'m ÷ s',emoji:'🚀',pts:100,tier:1,combos:[['m','s']],blurb:'Distance over time with direction. Speed is magnitude; velocity includes direction.',analogy:'🏃 Sprinter ≈ 10 m/s. 🚗 Highway ≈ 28 m/s.',fact:'💡 Light travels 300,000,000 m/s — the cosmic speed limit.'},
+  {id:'m²',symbol:'m²',name:'Square Metre',desc:'Area',formula:'m × m',emoji:'🔲',pts:100,tier:1,combos:[['m','m']],blurb:'Two-dimensional surface measurement.',analogy:'🅿️ Parking space ≈ 15 m². ⚽ Football field ≈ 7,140 m².',fact:'💡 Earth\'s entire surface area is about 510 trillion m².'},
+  {id:'Hz',symbol:'Hz',name:'Hertz',desc:'Frequency',formula:'1 ÷ s',emoji:'〰️',pts:100,tier:1,combos:[['s','s']],blurb:'Cycles per second — how often something repeats.',analogy:'🎵 Middle C ≈ 262 Hz. 👂 Human hearing: 20–20,000 Hz.',fact:'💡 Your phone\'s CPU runs at billions of Hz (GHz).'},
+  {id:'sr',symbol:'sr',name:'Steradian',desc:'Solid Angle',formula:'m² ÷ m²',emoji:'🔵',pts:100,tier:1,combos:[['m²','m²']],blurb:'3D version of a radian — measures a cone-shaped solid angle.',analogy:'🔵 A full sphere = 4π ≈ 12.57 sr.',fact:'💡 Used in optics to calculate how light spreads in 3D space.'},
+  {id:'C',symbol:'C',name:'Coulomb',desc:'Electric Charge',formula:'A × s',emoji:'🔌',pts:150,tier:1,combos:[['A','s']],blurb:'Unit of electric charge. 1 C = charge from 1 A flowing for 1 second.',analogy:'⚡ A lightning bolt transfers ≈ 5 C.',fact:'💡 1 coulomb ≈ 6,240,000,000,000,000,000 electrons.'},
+  {id:'Bq',symbol:'Bq',name:'Becquerel',desc:'Radioactivity',formula:'mol ÷ s',emoji:'⚛️',pts:150,tier:1,combos:[['mol','s']],blurb:'Radioactive decays per second. Named after Henri Becquerel.',analogy:'🍌 A banana ≈ 15 Bq. 🔔 Smoke detector ≈ 30,000 Bq.',fact:'💡 Becquerel discovered radioactivity by accident in 1896!'},
+  {id:'kat',symbol:'kat',name:'Katal',desc:'Catalytic Activity',formula:'mol ÷ s',emoji:'🧬',pts:150,tier:1,combos:[['mol','s']],blurb:'How fast an enzyme converts a substrate.',analogy:'⚙️ Enzymes are molecular machines — the katal rates their speed.',fact:'💡 Doctors use µkat levels to detect liver or heart damage in blood tests.'},
+  {id:'m/s²',symbol:'m/s²',name:'Acceleration',desc:'Acceleration',formula:'m/s ÷ s',emoji:'🏎️',pts:150,tier:2,combos:[['m/s','s']],blurb:'How quickly velocity changes. Positive = speeding up; negative = slowing down.',analogy:'🌍 Earth\'s gravity = 9.8 m/s² — you gain 9.8 m/s every second of freefall.',fact:'💡 Fighter pilots can experience ~98 m/s² (10 g) in tight turns.'},
+  {id:'m³',symbol:'m³',name:'Cubic Metre',desc:'Volume',formula:'m² × m',emoji:'📦',pts:150,tier:2,combos:[['m²','m']],blurb:'Three-dimensional volume — area times length.',analogy:'🛁 A bathtub ≈ 0.3 m³. 🏊 Olympic pool ≈ 2,500 m³.',fact:'💡 Your entire body is about 0.07 m³ — roughly 70 litres!'},
+  {id:'N',symbol:'N',name:'Newton',desc:'Force',formula:'kg × m/s²',emoji:'💪',pts:200,tier:2,combos:[['kg','m/s²']],blurb:'A push or pull. F = ma: 1 N accelerates 1 kg at 1 m/s². Named after Isaac Newton.',analogy:'🍎 Holding a 100 g apple ≈ 1 N. 🧍 Gravity on 70 kg person ≈ 686 N.',fact:'💡 A rocket engine can produce millions of newtons of thrust.'},
+  {id:'V',symbol:'V',name:'Volt',desc:'Electric Potential',formula:'W ÷ A',emoji:'🔆',pts:200,tier:2,combos:[['W','A'],['J','C']],blurb:'Electrical "pressure" that drives current. Named after Alessandro Volta.',analogy:'🔋 AA battery = 1.5 V. 🚗 Car battery = 12 V. 🏠 Wall outlet = 120–230 V.',fact:'💡 Power lines use 100,000+ V to reduce energy losses over long distances.'},
+  {id:'lm',symbol:'lm',name:'Lumen',desc:'Luminous Flux',formula:'cd × sr',emoji:'🌟',pts:200,tier:2,combos:[['cd','sr']],blurb:'Total visible light output in all directions.',analogy:'🕯️ Candle ≈ 12 lm. 💡 60 W bulb ≈ 800 lm.',fact:'💡 Modern LEDs produce 100+ lm/W. Old bulbs managed just ~15 lm/W.'},
+  {id:'Gy',symbol:'Gy',name:'Gray',desc:'Absorbed Radiation Dose',formula:'J ÷ kg',emoji:'☢️',pts:200,tier:2,combos:[['J','kg']],blurb:'Radiation energy absorbed per kilogram of tissue.',analogy:'🩻 Chest X-ray ≈ 0.00002 Gy. ☢️ Radiation therapy uses 60+ Gy over weeks.',fact:'💡 1 Gy whole-body dose causes radiation sickness. 5+ Gy can be fatal.'},
+  {id:'J',symbol:'J',name:'Joule',desc:'Energy / Work',formula:'N × m',emoji:'🔋',pts:200,tier:3,combos:[['N','m']],blurb:'Energy and work. 1 J moves 1 N over 1 metre.',analogy:'🍎 Lifting a small apple 1 m ≈ 1 J. 🍫 One food calorie = 4,184 J.',fact:'💡 A lightning bolt releases ≈ 1 billion joules in milliseconds!'},
+  {id:'Pa',symbol:'Pa',name:'Pascal',desc:'Pressure',formula:'N ÷ m²',emoji:'🌬️',pts:200,tier:3,combos:[['N','m²']],blurb:'Force per unit area. Smaller area = higher pressure.',analogy:'👠 A stiletto heel can exceed 1,000,000 Pa — more than an elephant! 🐘',fact:'💡 Atmospheric pressure at sea level = 101,325 Pa.'},
+  {id:'W',symbol:'W',name:'Watt',desc:'Power',formula:'J ÷ s',emoji:'💥',pts:200,tier:3,combos:[['J','s']],blurb:'Power — how fast energy is used. 1 W = 1 joule per second.',analogy:'🧍 Resting human ≈ 80 W. 🚴 Cyclist at max effort ≈ 400 W.',fact:'💡 Named after James Watt ⚙️. A microwave uses 700–1,200 W.'},
+  {id:'lx',symbol:'lx',name:'Lux',desc:'Illuminance',formula:'lm ÷ m²',emoji:'☀️',pts:200,tier:3,combos:[['lm','m²']],blurb:'How much light falls on a surface. Further away = fewer lux.',analogy:'🌕 Full moon ≈ 1 lx. ☀️ Direct sunlight ≈ 100,000 lx.',fact:'💡 Building codes set minimum lux levels for offices and roads.'},
+  {id:'Wb',symbol:'Wb',name:'Weber',desc:'Magnetic Flux',formula:'V × s',emoji:'🌐',pts:250,tier:3,combos:[['V','s']],blurb:'Total magnetic field passing through a surface.',analogy:'🔄 Think of it as counting magnetic field lines through a wire loop.',fact:'💡 Changing flux induces voltage — the heart of every generator!'},
+  {id:'Ω',symbol:'Ω',name:'Ohm',desc:'Electrical Resistance',formula:'V ÷ A',emoji:'🌀',pts:250,tier:3,combos:[['V','A']],blurb:'Opposition to current flow. Ohm\'s Law: V = IR.',analogy:'💧 Wet skin ≈ 1,000 Ω. 🧴 Dry skin ≈ 100,000 Ω.',fact:'💡 Water cuts resistance dramatically — that\'s why water + electricity is dangerous.'},
+  {id:'F',symbol:'F',name:'Farad',desc:'Capacitance',formula:'C ÷ V',emoji:'🧲',pts:250,tier:3,combos:[['C','V']],blurb:'How much charge a capacitor stores per volt.',analogy:'🚌 Train braking supercapacitors = 100s of farads.',fact:'💡 Supercapacitors charge in seconds and last millions of cycles.'},
+  {id:'T',symbol:'T',name:'Tesla',desc:'Magnetic Flux Density',formula:'Wb ÷ m²',emoji:'🧭',pts:300,tier:3,combos:[['Wb','m²']],blurb:'Magnetic field strength per unit area. Named after Nikola Tesla.',analogy:'🌍 Earth\'s field ≈ 0.00005 T. 🏥 MRI machine ≈ 1.5–3 T.',fact:'💡 The strongest lab magnets reach ~45 T and can levitate small animals!'},
+  {id:'H',symbol:'H',name:'Henry',desc:'Inductance',formula:'Wb ÷ A',emoji:'🔩',pts:300,tier:3,combos:[['Wb','A']],blurb:'A coil\'s resistance to changes in current — stores energy magnetically.',analogy:'🎡 An inductor is like an electrical flywheel.',fact:'💡 Wireless phone chargers use inductors to transfer energy through the air!'},
+];
+
+const TOTAL=DERIVED.length;
+const allUnits={};
+for(const u of BASE_UNITS) allUnits[u.id]={...u,type:'base'};
+for(const u of DERIVED) allUnits[u.id]={...u,type:'derived'};
+const comboMap={};
+for(const du of DERIVED){for(const c of du.combos){const key=[...c].sort().join('|');if(!comboMap[key])comboMap[key]=[];if(!comboMap[key].includes(du.id))comboMap[key].push(du.id);}}
+
+const DURATION=180,HINT_COST=50,MAX_HINTS=3;
+let timeLeft=DURATION,timerInt=null,gameActive=false;
+let gameMode='timed'; // 'timed' | 'sandbox'
+let score=0,bestScore=+(localStorage.getItem('qf_best')||0),sandboxBest=+(localStorage.getItem('qf_sandbox_best')||0);
+let discovered=new Set(),slots=[null,null],selUnit=null,lastForge=0,hintsUsed=0;
+
+function exhaustedSet(){
+  const ul=new Set([...BASE_UNITS.map(u=>u.id),...discovered]);
+  const ex=new Set();
+  for(const uid of ul){
+    let useful=false;
+    for(const[key,res]of Object.entries(comboMap)){
+      const p=key.split('|');if(!p.includes(uid))continue;
+      const other=p[0]===uid?p[1]:p[0];
+      if((p[0]===p[1]||ul.has(other))&&res.some(r=>!discovered.has(r))){useful=true;break;}
+    }
+    if(!useful)ex.add(uid);
+  }
+  return ex;
+}
+
+function startGame(mode){
+  gameMode=mode||'timed';
+  document.getElementById('startOverlay').classList.remove('on');
+  resetState();syncHUD();startTimer();renderAll();
+}
+function restartGame(){clearInterval(timerInt);['goOverlay','startOverlay'].forEach(id=>document.getElementById(id).classList.remove('on'));document.getElementById('resultArea').innerHTML='<span style="color:var(--dim);font-size:.76rem">✨ Select two units above and press Forge</span>';showEduPlaceholder();resetState();syncHUD();startTimer();renderAll();}
+function resetState(){gameActive=true;timeLeft=DURATION;score=0;discovered=new Set();slots=[null,null];selUnit=null;lastForge=Date.now();hintsUsed=0;}
+function startTimer(){
+  clearInterval(timerInt);
+  if(gameMode==='sandbox'){
+    const el=document.getElementById('hTimer');
+    el.textContent='∞';el.classList.remove('urgent');
+    return;
+  }
+  updateTimer();
+  timerInt=setInterval(()=>{timeLeft--;updateTimer();if(timeLeft<=0){clearInterval(timerInt);endGame(false);}},1000);
+}
+
+function endGame(perfect=false){
+  gameActive=false;clearInterval(timerInt);
+  const isSandbox=gameMode==='sandbox';
+  const tb=(perfect&&!isSandbox)?timeLeft*10:0;
+  if(tb>0){score+=tb;floatPts(`+${tb}`,'⏱️ time bonus!');}
+  if(isSandbox){
+    if(score>sandboxBest){sandboxBest=score;localStorage.setItem('qf_sandbox_best',sandboxBest);}
+  } else {
+    if(score>bestScore){bestScore=score;localStorage.setItem('qf_best',bestScore);}
+  }
+  syncHUD();
+  const pct=discovered.size/TOTAL;
+  document.getElementById('goEmoji').textContent=pct>=1?'🏆':pct>=0.7?'🥇':pct>=0.4?'🥈':'🥉';
+  const hL=hintsUsed>0?` (${hintsUsed} hint${hintsUsed>1?'s':''} used)`:'';
+  const tL=tb>0?` ⏱️ +${tb.toLocaleString()} time bonus!`:'';
+  const sandboxSub=`🔬 Found ${discovered.size}/${TOTAL} units${hL}`;
+  document.getElementById('goSub').textContent=isSandbox?sandboxSub:pct>=1?`🎉 All units! ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')} spare!${tL}`:pct>=0.7?`💪 Excellent physics knowledge!${hL}`:pct>=0.4?`📚 Solid effort — keep practicing!${hL}`:`🔬 Keep studying those combinations!${hL}`;
+  document.getElementById('goScore').textContent=score.toLocaleString();
+  document.getElementById('goBest').textContent=(isSandbox?sandboxBest:bestScore).toLocaleString();
+  document.getElementById('goDisc').textContent=discovered.size;
+  document.getElementById('goTotal').textContent=TOTAL;
+  document.getElementById('goTitle').textContent=isSandbox?'Session Complete!':'Time\'s Up!';
+  document.getElementById('goOverlay').classList.add('on');
+  showGoButtons();
+}
+
+function keepExploring(){
+  document.getElementById('goOverlay').classList.remove('on');
+  // game stays inactive — user can still read cards and info, just can't forge
+  // re-enable forging in sandbox
+  gameActive=true; renderAll();
+}
+
+function showGoButtons(){
+  const isSandbox=gameMode==='sandbox';
+  document.getElementById('goRestart').textContent=isSandbox?'🔄 New Session':'↺ Play Again';
+  document.getElementById('goExplore').style.display=isSandbox?'':'none';
+}
+function updateTimer(){
+  if(gameMode==='sandbox')return;
+  const m=Math.floor(timeLeft/60),s=timeLeft%60;const el=document.getElementById('hTimer');el.textContent=`${m}:${s.toString().padStart(2,'0')}`;el.classList.toggle('urgent',timeLeft<=30);
+}
+function syncHUD(){
+  document.getElementById('hFound').textContent=`${discovered.size}/${TOTAL}`;
+  document.getElementById('hScore').textContent=score.toLocaleString();
+  document.getElementById('hBest').textContent=(gameMode==='sandbox'?sandboxBest:bestScore).toLocaleString();
+  const rem=MAX_HINTS-hintsUsed;const hBtn=document.getElementById('hintBtn');
+  if(hBtn){hBtn.textContent=`💡 Hint (${rem} left)`;hBtn.disabled=!gameActive||rem<=0;}
+  // Timer pill
+  const tp=document.getElementById('timerPill');
+  if(tp)tp.style.display=gameMode==='sandbox'?'none':'flex';
+  // Mode badge
+  const mb=document.getElementById('modeBadge');
+  if(mb){
+    mb.style.display='';
+    if(gameMode==='sandbox'){mb.textContent='🧪 Sandbox';mb.style.color='#7c3aed';mb.style.borderColor='#c4b5fd';mb.style.background='#faf5ff';}
+    else{mb.textContent='⏱️ Timed';mb.style.color='#ea580c';mb.style.borderColor='#fed7aa';mb.style.background='#fff7f0';}
+  }
+}
+function shareScore(){const pct=Math.round(discovered.size/TOTAL*100);const bar='🟧'.repeat(Math.round(pct/10))+'⬜'.repeat(10-Math.round(pct/10));const txt=`⚗️ Quantum Forge\n\n🏆 Score: ${score.toLocaleString()}\n🔬 ${discovered.size}/${TOTAL} units\n${bar} ${pct}%\n\nCan you beat me?`;navigator.clipboard?navigator.clipboard.writeText(txt).then(()=>showToast('📋 Copied!')):prompt('Copy:',txt);}
+
+function renderAll(){const ex=exhaustedSet();renderBaseRow(ex);renderTiers(ex);renderSlots();updateCharacter(null);}
+
+function renderBaseRow(ex){
+  const row=document.getElementById('baseRow');row.innerHTML='';
+  for(const u of BASE_UNITS){
+    const btn=document.createElement('button');
+    btn.className='bu-btn'+(ex.has(u.id)?' exhausted':'')+(selUnit===u.id?' selected':'');
+    btn.dataset.id=u.id;
+    btn.innerHTML=`<div class="bu-emoji">${u.emoji}</div><div class="bu-sym">${u.symbol}</div><div class="bu-name">${u.name}</div>`;
+    btn.onclick=()=>{
+      if(!gameActive){openEdu(u);return;}
+      if(ex.has(u.id)){openEdu(u);return;}
+      pickUnit(u.id,btn);
+    };
+    row.appendChild(btn);
+  }
+}
+
+function renderTiers(ex){
+  const tiers={1:[],2:[],3:[]};
+  for(const id of discovered){const u=allUnits[id];if(u)tiers[u.tier||1].push(u);}
+  for(let t=1;t<=3;t++){
+    const cont=document.getElementById(`tier${t}Cards`);
+    document.getElementById(`t${t}count`).textContent=`${tiers[t].length} discovered`;
+    cont.innerHTML='';
+    if(!tiers[t].length){const msg={1:'Nothing yet — combine two base units! ⚛️',2:'Unlock Tier 1 units to chain further 🔗',3:'Keep chaining to reach advanced units 🚀'}[t];cont.innerHTML=`<div class="tier-empty">${msg}</div>`;continue;}
+    for(const u of tiers[t]){
+      const card=document.createElement('div');
+      card.className=`d-card t${t}`+(ex.has(u.id)?' exhausted':'');
+      card.dataset.id=u.id;
+      card.innerHTML=`${ex.has(u.id)?'<div class="dc-done">✅</div>':''}<div class="dc-emoji">${u.emoji}</div><div class="dc-sym t${t}">${u.symbol}</div><div class="dc-name">${u.name}</div><div class="dc-desc">${u.desc}</div>`;
+      card.onclick=()=>{
+        if(!gameActive||ex.has(u.id)){openEdu(u);return;}
+        pickUnit(u.id,card);
+      };
+      cont.appendChild(card);
+    }
+  }
+}
+
+function renderSlots(){
+  for(let i=0;i<2;i++){
+    const sl=document.getElementById(`slot${i}`);const old=document.getElementById(`sc${i}`);if(old)old.remove();
+    const inner=document.createElement('div');inner.id=`sc${i}`;
+    if(slots[i]){const u=allUnits[slots[i]];sl.classList.add('filled');inner.innerHTML=`<div class="fsl-emoji">${u.emoji}</div><div class="fsl-sym">${u.symbol}</div><div class="fsl-name">${u.name}</div>`;}
+    else{sl.classList.remove('filled');inner.className='fsl-empty';inner.textContent='click a unit above\nto place it here';}
+    sl.appendChild(inner);
+  }
+  document.getElementById('forgeBtn').disabled=!(slots[0]&&slots[1])||!gameActive;
+  document.getElementById('hintBtn').disabled=!gameActive||(MAX_HINTS-hintsUsed)<=0;
+}
+
+function showEduPlaceholder(){document.getElementById('eduPanel').innerHTML='<div class="edu-placeholder"><div class="edu-placeholder-icon">🔬</div><div class="edu-placeholder-text">Forge a combination to see<br>the science card here!</div></div>';}
+
+function openEdu(u){
+  const isDerived=u.type==='derived';
+  const symCls=isDerived?`t${u.tier||1}`:'base';
+  let h=`<div class="edu-content"><div class="edu-head"><div class="edu-head-emoji">${u.emoji}</div><div class="edu-head-info"><div class="edu-head-sym ${symCls}">${u.symbol}</div><div class="edu-head-name">${u.name}</div><div class="edu-head-desc">${u.desc}</div></div></div>`;
+  if(u.formula)h+=`<div class="edu-formula">${u.symbol} = ${u.formula}</div>`;
+  h+=`<div class="edu-section"><div class="edu-sec-lbl">📖 What is it?</div><div class="edu-sec-text">${u.blurb}</div></div>`;
+  if(u.analogy)h+=`<div class="edu-analogy">${u.analogy}</div>`;
+  if(u.fact)h+=`<div class="edu-section"><div class="edu-sec-lbl">💡 Fun fact</div><div class="edu-sec-text">${u.fact}</div></div>`;
+  if(u.combos_hint?.length)h+=`<div class="edu-section"><div class="edu-sec-lbl">🔗 Combinations</div><div class="edu-tags">${u.combos_hint.map(x=>`<span class="edu-tag">${x}</span>`).join('')}</div></div>`;
+  if(isDerived&&u.combos)h+=`<div class="edu-section"><div class="edu-sec-lbl">⚗️ How to forge</div><div class="edu-tags">${u.combos.map(c=>{const a=allUnits[c[0]],b=allUnits[c[1]];return`<span class="edu-tag">${a?.emoji||''} ${c[0]} + ${b?.emoji||''} ${c[1]}</span>`;}).join('')}</div></div>`;
+  h+=`</div>`;
+  document.getElementById('eduPanel').innerHTML=h;
+}
+
+function pickUnit(id,el){
+  if(selUnit===id){selUnit=null;renderAll();return;}
+  selUnit=id;
+  if(slots[0]===null){slots[0]=id;renderAll();selUnit=null;return;}
+  if(slots[1]===null){slots[1]=id;renderAll();selUnit=null;return;}
+  slots[1]=id;renderAll();selUnit=null;
+}
+
+function clickSlot(i){if(!gameActive)return;if(selUnit){slots[i]=selUnit;selUnit=null;renderAll();}else if(slots[i]){slots[i]=null;renderSlots();}}
+
+function playDiscovery(u,pts){
+  document.getElementById('bEmoji').textContent=u.emoji;
+  document.getElementById('bSym').textContent=u.symbol;
+  document.getElementById('bName').textContent=u.name;
+  document.getElementById('bPts').textContent=`+${pts} pts`;
+  const ov=document.getElementById('discOverlay');
+  ov.classList.remove('show');void ov.offsetWidth;ov.classList.add('show');
+  setTimeout(()=>ov.classList.remove('show'),2400);
+}
+
+function giveHint(){
+  if(!gameActive)return;
+  const ra=document.getElementById('resultArea');
+  if(hintsUsed>=MAX_HINTS){ra.innerHTML=`<div class="res-hint-box" style="border-color:#fecaca;color:#ef4444;background:#fef2f2">🚫 No hints left! All ${MAX_HINTS} used.</div>`;return;}
+  const ul=new Set([...BASE_UNITS.map(u=>u.id),...discovered]);
+  const cands=[];
+  for(const[key,res]of Object.entries(comboMap)){const p=key.split('|');const[a,b]=p;const isSelf=a===b;if(!ul.has(a))continue;if(!isSelf&&!ul.has(b))continue;if(res.some(r=>!discovered.has(r)))cands.push({a,b});}
+  if(!cands.length){ra.innerHTML=`<div class="res-hint-box">🎉 No more combos available!</div>`;return;}
+  hintsUsed++;score=Math.max(0,score-HINT_COST);syncHUD();
+  const rem=MAX_HINTS-hintsUsed;
+  const pick=cands[Math.floor(Math.random()*cands.length)];
+  const ua=allUnits[pick.a],ub=allUnits[pick.b];
+  ra.innerHTML=`<div class="res-hint-box">💡 <strong>Hint</strong> <span style="color:var(--red);font-size:.68rem">−${HINT_COST} pts</span><br>${ua.emoji} <strong>${ua.symbol}</strong> + ${ub.emoji} <strong>${ub.symbol}</strong><br><span style="font-size:.62rem;color:var(--dim)">${rem} hint${rem!==1?'s':''} remaining</span></div>`;
+  slots[0]=pick.a;slots[1]=pick.b;renderSlots();
+}
+
+function tryForge(){
+  if(!slots[0]||!slots[1]||!gameActive)return;
+  const key=[slots[0],slots[1]].sort().join('|');
+  const matches=comboMap[key];
+  const ra=document.getElementById('resultArea');
+  if(matches?.length){
+    const targetId=matches.find(id=>!discovered.has(id))||matches[0];
+    const u=allUnits[targetId];
+    const isNew=!discovered.has(targetId);
+    if(isNew){
+      discovered.add(targetId);
+      const now=Date.now(),elapsed=(now-lastForge)/1000;
+      const spd=(gameMode==='sandbox')?0:elapsed<8?Math.round((8-elapsed)*12):0;
+      const pts=u.pts+spd;
+      lastForge=now;score+=pts;syncHUD();
+      boom();floatPts(`+${pts}`,spd>0?`⚡ +${spd}`:null);
+      showToast(`${u.emoji} ${u.name} (${u.symbol}) +${pts} pts`);
+      playDiscovery(u,pts);
+      ra.innerHTML=`<div class="res-pop" style="display:flex;flex-direction:column;align-items:center;gap:5px"><div class="res-new-badge">✨ New Discovery! +${pts}${spd>0?' ⚡':''}pts</div><div style="font-size:2.4rem">${u.emoji}</div><div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800">${u.name} <span style="color:#ea580c">(${u.symbol})</span></div><div style="font-size:.73rem;color:var(--dim)">${u.desc} · ${u.formula}</div></div>`;
+      openEdu(u);slots=[null,null];renderAll();
+      updateCharacter(targetId);
+      if(discovered.size===TOTAL){setTimeout(()=>endGame(gameMode!=='sandbox'),2500);return;}
+      setTimeout(()=>{document.querySelectorAll('.d-card').forEach(c=>{if(c.dataset.id===targetId){c.classList.add('newly-unlocked');setTimeout(()=>c.classList.remove('newly-unlocked'),1200);}});},120);
+    }else{
+      ra.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--dim)"><div style="font-size:1.8rem">${u.emoji}</div><div style="font-weight:600">${u.name} already found! 🔄</div><div style="font-size:.68rem">Try a different combination</div></div>`;
+      openEdu(u);slots=[null,null];renderAll();
+    }
+  }else{
+    ra.innerHTML=`<div style="color:var(--dim);text-align:center;line-height:2.1">💨 No reaction!<br>${allUnits[slots[0]].emoji} <strong>${allUnits[slots[0]].symbol}</strong> + ${allUnits[slots[1]].emoji} <strong>${allUnits[slots[1]].symbol}</strong><br><span style="font-size:.68rem">These don't combine 🤷</span></div>`;
+    setTimeout(()=>{slots=[null,null];renderSlots();},1300);
+  }
+}
+
+function boom(){
+  const rect=document.querySelector('.forge-slots-row').getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  const clrs=['#f59e0b','#ea580c','#dc2626','#16a34a','#2563eb','#7c3aed','#0891b2','#be185d'];
+  for(let i=0;i<32;i++){
+    const p=document.createElement('div');p.className='particle';
+    const sz=Math.random()*9+3,a=Math.random()*Math.PI*2,d=Math.random()*230+60;
+    p.style.cssText=`left:${cx}px;top:${cy}px;width:${sz}px;height:${sz}px;background:${clrs[~~(Math.random()*clrs.length)]};--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d}px;animation-duration:${Math.random()*.4+.6}s;animation-delay:${Math.random()*.07}s`;
+    document.body.appendChild(p);setTimeout(()=>p.remove(),1700);
+  }
+}
+
+function floatPts(pts,bonus){
+  const mk=(txt,x,y,delay)=>{const e=document.createElement('div');e.className='float-pts';e.textContent=txt;e.style.cssText=`left:${x}px;top:${y}px;animation-delay:${delay}s`;document.body.appendChild(e);setTimeout(()=>e.remove(),1400+delay*1000);};
+  mk(pts,window.innerWidth/2-28,window.innerHeight/2-80,0);
+  if(bonus)mk(bonus,window.innerWidth/2-50,window.innerHeight/2-50,.15);
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2400);}
+
+// ════════════════════════════════════
+// ENGINEER CHARACTER — modern flat design
+// ════════════════════════════════════
+
+const RANKS = [
+  { min:0,  label:'🧑 Rookie',           color:'#94a3b8' },
+  { min:3,  label:'🔧 Apprentice',       color:'#0891b2' },
+  { min:7,  label:'⚙️ Technician',       color:'#0f766e' },
+  { min:11, label:'🔬 Engineer',         color:'#6d28d9' },
+  { min:16, label:'🚀 Senior Engineer',  color:'#c2410c' },
+  { min:20, label:'⭐ Lead Engineer',    color:'#d97706' },
+  { min:22, label:'🦸 Super Physicist!', color:'#be185d' },
+];
+
+function getRank(n) {
+  let r = RANKS[0];
+  for (const rk of RANKS) { if (n >= rk.min) r = rk; }
+  return r;
+}
+
+// One tool badge per derived unit — positions on the body
+const TOOLS = [
+  { id:'m/s',  x:62,  y:152, emoji:'📡', label:'Speed',   color:'#0891b2' },
+  { id:'m²',   x:103, y:152, emoji:'📐', label:'Area',    color:'#0f766e' },
+  { id:'Hz',   x:48,  y:143, emoji:'〰️', label:'Freq',    color:'#7c3aed' },
+  { id:'sr',   x:118, y:143, emoji:'🔵', label:'Angle',   color:'#1d4ed8' },
+  { id:'C',    x:83,  y:158, emoji:'⚡', label:'Charge',  color:'#ca8a04' },
+  { id:'m/s²', x:52,  y:127, emoji:'🏎️', label:'Accel',   color:'#dc2626' },
+  { id:'m³',   x:113, y:127, emoji:'📦', label:'Volume',  color:'#0891b2' },
+  { id:'Bq',   x:60,  y:115, emoji:'⚛️', label:'Activity',color:'#7c3aed' },
+  { id:'kat',  x:106, y:115, emoji:'🧬', label:'Catalys', color:'#059669' },
+  { id:'lm',   x:83,  y:118, emoji:'🌟', label:'Lumens',  color:'#d97706' },
+  { id:'N',    x:41,  y:105, emoji:'💪', label:'Force',   color:'#be185d' },
+  { id:'Pa',   x:124, y:105, emoji:'🌬️', label:'Press',   color:'#0e7490' },
+  { id:'J',    x:36,  y:92,  emoji:'🔋', label:'Energy',  color:'#16a34a' },
+  { id:'W',    x:129, y:92,  emoji:'💥', label:'Power',   color:'#c2410c' },
+  { id:'lx',   x:41,  y:80,  emoji:'☀️', label:'Lux',     color:'#ca8a04' },
+  { id:'V',    x:129, y:80,  emoji:'🔆', label:'Volt',    color:'#6d28d9' },
+  { id:'Omega', x:36,  y:70,  emoji:'🌀', label:'Resist',  color:'#1d4ed8' },
+  { id:'F',    x:129, y:70,  emoji:'🧲', label:'Cap',     color:'#0f766e' },
+  { id:'Wb',   x:62,  y:22,  emoji:'🌐', label:'Flux',    color:'#0891b2' },
+  { id:'T',    x:104, y:22,  emoji:'🧭', label:'Tesla',   color:'#6d28d9' },
+  { id:'H',    x:83,  y:14,  emoji:'🔩', label:'Henry',   color:'#be185d' },
+  { id:'Gy',   x:83,  y:173, emoji:'☢️', label:'Dose',    color:'#dc2626' },
+];
+// Fix Ohm id
+TOOLS.find(t=>t.id==='Omega').id = 'Ω';
+
+let lastDiscoveredId = null;
+
+function spawnPoof(svgEl, cx, cy, color) {
+  const rect = svgEl.getBoundingClientRect();
+  const px = rect.left + (cx / 180) * rect.width;
+  const py = rect.top  + (cy / 210) * rect.height;
+  const clrs = [color, '#ffffff', '#fbbf24', '#f9a8d4', color];
+  for (let i = 0; i < 10; i++) {
+    const d = document.createElement('div');
+    const dx = (Math.random()-0.5)*60, dy = (Math.random()-0.5)*60;
+    d.style.cssText = `position:fixed;pointer-events:none;z-index:500;width:8px;height:8px;border-radius:50%;background:${clrs[i%clrs.length]};left:${px}px;top:${py}px;animation:poofDot .6s ease-out forwards;--px:${dx}px;--py:${dy}px;`;
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(), 700);
+  }
+  const ring = document.createElement('div');
+  ring.style.cssText = `position:fixed;pointer-events:none;z-index:499;width:10px;height:10px;border-radius:50%;border:2.5px solid ${color};left:${px-5}px;top:${py-5}px;animation:poofRingCSS .55s ease-out forwards;`;
+  document.body.appendChild(ring);
+  setTimeout(()=>ring.remove(), 650);
+}
+
+function drawEngineer(n, newId) {
+  const svg = document.getElementById('engineerSvg');
+  if (!svg) return;
+  const hero   = n >= 22;
+  const senior = n >= 16;
+  const mid    = n >= 7;
+  const suit  = hero ? '#1e1b4b' : senior ? '#1e3a8a' : mid ? '#1e40af' : '#334155';
+  const cape  = hero ? '#be185d' : senior ? '#7c3aed' : n>=11 ? '#0891b2' : n>=3 ? '#0f766e' : null;
+  const helm  = hero ? '#be185d' : senior ? '#7c3aed' : mid ? '#1d4ed8' : n>=1 ? '#334155' : null;
+  const glove = hero ? '#be185d' : senior ? '#7c3aed' : n>=5 ? '#0f766e' : '#475569';
+  const boot  = hero ? '#be185d' : mid ? '#1e40af' : '#334155';
+  const skin  = '#fcd9b0';
+  const hair  = '#292524';
+
+  let toolsSVG = '';
+  for (const t of TOOLS) {
+    if (!discovered.has(t.id)) continue;
+    const isNew = t.id === newId;
+    const anim = isNew ? `style="transform-origin:${t.x}px ${t.y}px;transform-box:fill-box;animation:toolBounce .55s cubic-bezier(.175,.885,.32,1.275) forwards"` : '';
+    toolsSVG += `<g ${anim}><rect x="${t.x-10}" y="${t.y-9}" width="20" height="16" rx="5" fill="${t.color}" opacity=".92" filter="url(#shadow)"/><text x="${t.x}" y="${t.y+5}" text-anchor="middle" font-size="9">${t.emoji}</text><title>${t.label}</title></g>`;
+  }
+
+  const heroAura = hero ? `<circle cx="83" cy="103" r="76" fill="none" stroke="#be185d" stroke-width="2" stroke-dasharray="5,4" opacity=".32"><animateTransform attributeName="transform" type="rotate" from="0 83 103" to="360 83 103" dur="9s" repeatCount="indefinite"/></circle><circle cx="83" cy="103" r="80" fill="url(#auraGrad)" opacity=".08"/>` : '';
+
+  const smile = n===0 ? `M76,75 Q83,76 90,75` : n<5 ? `M76,75 Q83,78 90,75` : n<11 ? `M75,74 Q83,80 91,74` : n<16 ? `M74,74 Q83,82 92,74` : hero ? `M70,73 Q83,86 96,73` : `M72,73 Q83,83 94,73`;
+  const smileW = hero ? 2.8 : n>=16 ? 2.4 : n>=11 ? 2.2 : n>=5 ? 2 : 1.6;
+  const smileColor = hero ? '#be185d' : '#7c5835';
+
+  svg.innerHTML = `
+  <defs>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#00000028"/></filter>
+    <filter id="bshadow" x="-10%" y="-5%" width="120%" height="115%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000015"/></filter>
+    <radialGradient id="auraGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#be185d"/><stop offset="100%" stop-color="#be185d" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${suit}"/><stop offset="100%" stop-color="${suit}dd"/></linearGradient>
+    <linearGradient id="fg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${skin}"/><stop offset="100%" stop-color="#f5c6a0"/></linearGradient>
+  </defs>
+  ${heroAura}
+  ${cape ? `<path d="M50,98 Q${hero?14:24},${hero?172:158} ${hero?26:36},188 Q55,${hero?202:194} 83,${hero?205:198} Q111,${hero?202:194} ${hero?140:130},188 Q${hero?152:142},${hero?172:158} 116,98 Z" fill="${cape}" opacity="${hero?1:.82}" filter="url(#bshadow)"/>` : ''}
+  <rect x="54" y="158" width="24" height="34" rx="7" fill="${suit}" filter="url(#bshadow)"/>
+  <rect x="82" y="158" width="24" height="34" rx="7" fill="${suit}" filter="url(#bshadow)"/>
+  <rect x="50" y="184" width="31" height="12" rx="6" fill="${boot}" filter="url(#shadow)"/>
+  <rect x="79" y="184" width="31" height="12" rx="6" fill="${boot}" filter="url(#shadow)"/>
+  <rect x="50" y="184" width="31" height="5" rx="3" fill="white" opacity=".12"/>
+  <rect x="79" y="184" width="31" height="5" rx="3" fill="white" opacity=".12"/>
+  <rect x="44" y="92" width="78" height="70" rx="12" fill="url(#sg)" filter="url(#bshadow)"/>
+  <rect x="44" y="92" width="78" height="18" rx="12" fill="white" opacity=".08"/>
+  <path d="M67,92 L83,116 L99,92" fill="${suit}"/>
+  <path d="M73,92 L83,108 L93,92" fill="white" opacity=".1"/>
+  ${n>=1 ? `<rect x="44" y="148" width="78" height="12" rx="4" fill="${n>=5?'#92400e':'#475569'}" filter="url(#shadow)"/><rect x="44" y="148" width="78" height="5" rx="4" fill="white" opacity=".1"/><rect x="74" y="146" width="18" height="16" rx="5" fill="${n>=5?'#d97706':'#64748b'}" filter="url(#shadow)"/><rect x="74" y="146" width="18" height="7" rx="4" fill="white" opacity=".15"/>` : ''}
+  <rect x="26" y="94" width="20" height="54" rx="9" fill="${suit}" filter="url(#bshadow)"/>
+  <rect x="114" y="94" width="20" height="54" rx="9" fill="${suit}" filter="url(#bshadow)"/>
+  <rect x="26" y="94" width="20" height="12" rx="9" fill="white" opacity=".1"/>
+  <rect x="114" y="94" width="20" height="12" rx="9" fill="white" opacity=".1"/>
+  <ellipse cx="36" cy="152" rx="12" ry="11" fill="${glove}" filter="url(#shadow)"/>
+  <ellipse cx="124" cy="152" rx="12" ry="11" fill="${glove}" filter="url(#shadow)"/>
+  <ellipse cx="36" cy="148" rx="12" ry="5" fill="white" opacity=".14"/>
+  <ellipse cx="124" cy="148" rx="12" ry="5" fill="white" opacity=".14"/>
+  <rect x="73" y="70" width="20" height="24" rx="7" fill="${skin}"/>
+  <ellipse cx="83" cy="54" rx="30" ry="32" fill="url(#fg)" filter="url(#bshadow)"/>
+  ${!hero ? `<path d="M54,44 Q56,18 83,16 Q110,18 112,44 Q108,32 103,28 Q93,22 83,22 Q73,22 63,28 Q58,32 54,44 Z" fill="${hair}" opacity=".9"/>` : `<path d="M54,44 Q56,18 83,16 Q110,18 112,44 Q108,32 83,28 Q58,32 54,44 Z" fill="#be185d" opacity=".95"/>`}
+  ${helm ? `<path d="M55,48 Q57,20 83,18 Q109,20 111,48 L111,42 Q107,14 83,12 Q59,14 55,42 Z" fill="${helm}" filter="url(#shadow)"/><rect x="55" y="42" width="56" height="9" rx="4" fill="${helm}"/><rect x="59" y="43" width="48" height="7" rx="3" fill="${hero?'#fde68a':n>=11?'#bfdbfe':'#e2e8f0'}" opacity=".7"/><path d="M62,22 Q74,15 90,17" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" opacity=".3"/>` : ''}
+  <ellipse cx="72" cy="60" rx="6" ry="6.5" fill="white"/>
+  <ellipse cx="94" cy="60" rx="6" ry="6.5" fill="white"/>
+  <circle cx="72" cy="61" r="4" fill="${hero?'#be185d':n>=11?'#1d4ed8':'#1e293b'}"/>
+  <circle cx="94" cy="61" r="4" fill="${hero?'#be185d':n>=11?'#1d4ed8':'#1e293b'}"/>
+  <circle cx="73" cy="60" r="1.8" fill="${hero?'#fde68a':'white'}"/>
+  <circle cx="95" cy="60" r="1.8" fill="${hero?'#fde68a':'white'}"/>
+  <circle cx="74.5" cy="58.5" r="1" fill="white" opacity=".8"/>
+  <circle cx="96.5" cy="58.5" r="1" fill="white" opacity=".8"/>
+  <path d="M65,${n>=11?51:53} Q72,${n>=11?48:51} 78,${n>=11?51:53}" fill="none" stroke="${hair}" stroke-width="${hero?2.5:n>=7?2:1.6}" stroke-linecap="round"/>
+  <path d="M88,${n>=11?51:53} Q94,${n>=11?48:51} 101,${n>=11?51:53}" fill="none" stroke="${hair}" stroke-width="${hero?2.5:n>=7?2:1.6}" stroke-linecap="round"/>
+  ${hero ? `<ellipse cx="63" cy="68" rx="6" ry="4" fill="#fda4af" opacity=".4"/><ellipse cx="103" cy="68" rx="6" ry="4" fill="#fda4af" opacity=".4"/>` : ''}
+  <path d="M81,67 Q83,71 85,67" fill="none" stroke="#d4956a" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="${smile}" fill="none" stroke="${smileColor}" stroke-width="${smileW}" stroke-linecap="round"/>
+  ${hero ? `<path d="${smile}" fill="#fecdd3" opacity=".35" stroke="none"/>` : ''}
+  ${hero ? `<text x="83" y="10" text-anchor="middle" font-size="18">⭐</text>` : n>=20 ? `<text x="83" y="8" text-anchor="middle" font-size="14">✨</text>` : ''}
+  ${hero ? `<circle cx="26" cy="93" r="6" fill="#fde68a"/><text x="26" y="97" text-anchor="middle" font-size="9">★</text><circle cx="140" cy="93" r="6" fill="#fde68a"/><text x="140" y="97" text-anchor="middle" font-size="9">★</text>` : ''}
+  ${toolsSVG}
+  `;
+
+  if (newId) {
+    const t = TOOLS.find(t=>t.id===newId);
+    if (t) setTimeout(()=>spawnPoof(svg, t.x, t.y, t.color), 80);
+  }
+}
+
+function updateCharacter(newId) {
+  lastDiscoveredId = newId || null;
+  const n = discovered.size;
+  const pct = Math.round(n / TOTAL * 100);
+  const fill  = document.getElementById('charProgFill');
+  const label = document.getElementById('charProgLabel');
+  if (fill)  fill.style.width = pct + '%';
+  if (label) label.textContent = `${n}/${TOTAL}`;
+  const rankEl   = document.getElementById('charRank');
+  const rank     = getRank(n);
+  const prevRank = getRank(Math.max(0, n-1));
+  if (rankEl) {
+    rankEl.textContent    = rank.label;
+    rankEl.style.color    = rank.color;
+    rankEl.style.borderColor = rank.color + '55';
+    rankEl.style.background  = rank.color + '12';
+    if (newId && rank.min !== prevRank.min) {
+      rankEl.classList.remove('rank-promoted');
+      void rankEl.offsetWidth;
+      rankEl.classList.add('rank-promoted');
+      setTimeout(()=>rankEl.classList.remove('rank-promoted'), 1100);
+    }
+  }
+  drawEngineer(n, newId);
+}
+
+
+document.getElementById('hBest').textContent=bestScore.toLocaleString();
+renderAll();
+
+// Also show a subtle mode badge in the header once game starts (injected by syncHUD on first call)
+</script>
+</body>
+</html>
